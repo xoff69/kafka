@@ -1,0 +1,42 @@
+services:
+  broker:
+    image: apache/kafka:3.8.0
+    hostname: broker
+    container_name: broker
+    ports:
+      - "9092:9092"
+    environment:
+      # Identifiant unique du broker au sein du cluster (mode legacy, conservé pour compat).
+      KAFKA_BROKER_ID: 1
+      # Identifiant unique du nœud en mode KRaft (remplace BROKER_ID pour le quorum controller).
+      KAFKA_NODE_ID: 1
+      # Ce nœud KRaft cumule les deux rôles : broker (traite les données) et controller (gère les métadonnées),
+      # d'où l'absence de Zookeeper.
+      KAFKA_PROCESS_ROLES: broker,controller
+      # Associe chaque nom de listener à un protocole de sécurité ; PLAINTEXT partout = pas de TLS/SASL (OK pour un POC local).
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      # Interfaces sur lesquelles le broker écoute réellement à l'intérieur du conteneur :
+      # PLAINTEXT (19092) pour le réseau Docker interne, CONTROLLER (29093) pour le quorum KRaft,
+      # PLAINTEXT_HOST (9092, bind sur 0.0.0.0) pour les clients venant de l'hôte.
+      KAFKA_LISTENERS: PLAINTEXT://broker:19092,CONTROLLER://broker:29093,PLAINTEXT_HOST://0.0.0.0:9092
+      # Adresses annoncées aux clients pour se reconnecter : "broker:19092" pour les autres conteneurs du réseau
+      # Docker, "localhost:9092" pour les apps Java lancées depuis l'hôte (mappé via le port 9092:9092 ci-dessus).
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:19092,PLAINTEXT_HOST://localhost:9092
+      # Listener utilisé pour la réplication entre brokers (ici un seul broker, mais la valeur reste requise).
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      # Indique quel(s) listener(s) parmi KAFKA_LISTENERS sert au trafic du quorum controller (métadonnées KRaft).
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      # Liste des votants du quorum KRaft au format "id@host:port" ; ici un seul nœud (id 1) qui s'auto-désigne.
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker:29093
+      # Facteur de réplication du topic interne __consumer_offsets ; 1 car il n'y a qu'un seul broker.
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      # Nombre minimum de réplicas synchronisés (ISR) requis pour le log d'état des transactions ; 1 en mono-broker.
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      # Facteur de réplication du log d'état des transactions ; 1 en mono-broker.
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      # Délai (ms) avant le premier rebalancing d'un groupe de consommateurs ; 0 = pas d'attente,
+      # utile pour un démarrage rapide en dev/POC.
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      # Autorise la création automatique d'un topic dès qu'un producer/consumer le référence
+      # (c'est ce qui crée "poc-topic" au premier usage, sans commande admin explicite).
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
