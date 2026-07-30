@@ -1,6 +1,7 @@
 plugins {
     id("java")
     id("application")
+    kotlin("jvm") version "2.3.0"
 }
 
 group = "org.example"
@@ -20,7 +21,11 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
-
+kotlin {
+   jvmToolchain {
+       languageVersion.set(JavaLanguageVersion.of(25))
+   }
+}
 application {
     mainClass.set("org.example.kafka.ProducerApp")
 }

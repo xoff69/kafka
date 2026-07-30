@@ -67,6 +67,8 @@
 # Resolve links: $0 may be a link
 app_path=$0
 
+
+
 # Need this for daisy-chained symlinks.
 while
     APP_HOME=${app_path%"${app_path##*/}"}  # leaves a trailing /; empty if no leading path
@@ -115,6 +117,7 @@ case "$( uname )" in                #(
 esac
 
 CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
+
 
 
 # Determine the Java command to use to start the JVM.
